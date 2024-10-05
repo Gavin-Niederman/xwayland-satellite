@@ -24,6 +24,10 @@ use wayland_protocols::{
                 zwp_relative_pointer_v1::ZwpRelativePointerV1 as RelativePointerServer,
             },
         },
+        tablet::zv2::{
+            client::zwp_tablet_tool_v2::ZwpTabletToolV2 as TabletToolClient,
+            server::zwp_tablet_tool_v2::{self as tablet, ZwpTabletToolV2 as TabletToolServer},
+        },
         viewporter::{client as c_vp, server as s_vp},
     },
     xdg::xdg_output::zv1::{
@@ -979,6 +983,33 @@ impl<C: XConnection>
     }
 }
 
+impl<C: XConnection> Dispatch<TabletToolServer, ObjectKey> for ServerState<C> {
+    fn request(
+        state: &mut Self,
+        client: &wayland_server::Client,
+        resource: &TabletToolServer,
+        request: <TabletToolServer as Resource>::Request,
+        data: &ObjectKey,
+        dhandle: &DisplayHandle,
+        data_init: &mut wayland_server::DataInit<'_, Self>,
+    ) {
+        let tool: &TabletTool = state.objects[*data].as_ref();
+        simple_event_shunt! {
+            tool.client, request: tablet::Request => [
+                SetCursor { serial, |surface| {
+                    let Some(surface) = surface else {
+                        return;
+                    };
+                    let key: ObjectKey = surface.data().copied().unwrap();
+                    let data: &SurfaceData = state.objects[key].as_ref();
+                    Some(&data.client)
+                }, hotspot_x, hotspot_y },
+                Destroy
+            ]
+        }
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct ClientGlobalWrapper<T: Proxy>(Arc<OnceLock<T>>);
 impl<T: Proxy> std::ops::Deref for ClientGlobalWrapper<T> {
@@ -1157,6 +1188,7 @@ impl<C: XConnection> Dispatch<XwaylandShellV1, ()> for ServerState<C> {
             Request::GetXwaylandSurface { id, surface } => {
                 let key: ObjectKey = surface.data().copied().unwrap();
                 let data: &mut SurfaceData = state.objects[key].as_mut();
+                
                 if data.xwl.is_some() {
                     error!("Surface {surface:?} already has the xwayland surface role!");
                     client.kill(

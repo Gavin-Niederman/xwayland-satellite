@@ -21,6 +21,16 @@ use wayland_protocols::{
             },
             server::zwp_relative_pointer_v1::ZwpRelativePointerV1 as RelativePointerServer,
         },
+        tablet::zv2::{
+            client::{
+                zwp_tablet_v2::{self, ZwpTabletV2 as TabletClient},
+                zwp_tablet_tool_v2::{self, ZwpTabletToolV2 as TabletToolClient},
+            },
+            server::{
+                zwp_tablet_v2::ZwpTabletV2 as TabletServer,
+                zwp_tablet_tool_v2::ZwpTabletToolV2 as TabletToolServer,
+            },
+        }
     },
     xdg::{
         shell::client::{xdg_popup, xdg_surface, xdg_toplevel},
@@ -861,6 +871,95 @@ impl HandleEvent for ConfinedPointer {
             self.server, event: zwp_confined_pointer_v1::Event => [
                 Confined,
                 Unconfined
+            ]
+        }
+    }
+}
+
+pub type Tablet = GenericObject<TabletServer, TabletClient>;
+impl HandleEvent for Tablet {
+    type Event = zwp_tablet_v2::Event;
+
+    fn handle_event<C: XConnection>(&mut self, event: Self::Event, _: &mut ServerState<C>) {
+        simple_event_shunt! {
+            self.server, event: zwp_tablet_v2::Event => [
+                Name { name },
+                Id { vid, pid },
+                Path { path },
+                Done
+            ]
+        }
+    }
+}
+pub type TabletTool = GenericObject<TabletToolServer, TabletToolClient>;
+impl HandleEvent for TabletTool {
+    type Event = zwp_tablet_tool_v2::Event;
+
+    fn handle_event<C: XConnection>(&mut self, event: Self::Event, _: &mut ServerState<C>) {
+        if let zwp_tablet_tool_v2::Event::Type { tool_type } = event {
+            (self.server)._type(convert_wenum(tool_type));
+        }
+        simple_event_shunt! {
+            self.server, event: zwp_tablet_tool_v2::Event => [
+                HardwareSerial {
+                    hardware_serial_hi,
+                    hardware_serial_lo
+                },
+                HardwareIdWacom {
+                    hardware_id_hi,
+                    hardware_id_lo
+                },
+                Capability {
+                    |capability| convert_wenum(capability)
+                },
+                Done,
+                Removed,
+                ProximityIn {
+                    serial,
+                    |tablet| {
+                        todo!();
+                    },
+                    |surface| {
+                        todo!();
+                    }
+                },
+                ProximityOut,
+                Down {
+                    serial
+                },
+                Up,
+                Motion {
+                    x,
+                    y
+                },
+                Pressure {
+                    pressure
+                },
+                Distance {
+                    distance
+                },
+                Tilt {
+                    tilt_x,
+                    tilt_y
+                },
+                Rotation {
+                    degrees
+                },
+                Slider {
+                    position
+                },
+                Wheel {
+                    degrees,
+                    clicks
+                },
+                Button {
+                    serial,
+                    button,
+                    |state| convert_wenum(state)
+                },
+                Frame {
+                    time
+                }
             ]
         }
     }

@@ -15,6 +15,7 @@ use wayland_protocols::wp::relative_pointer::zv1::client::{
     zwp_relative_pointer_manager_v1::ZwpRelativePointerManagerV1,
     zwp_relative_pointer_v1::ZwpRelativePointerV1,
 };
+use wayland_protocols::wp::tablet::zv2::client::zwp_tablet_tool_v2::ZwpTabletToolV2;
 use wayland_protocols::{
     wp::{
         linux_dmabuf::zv1::client::{
@@ -188,3 +189,4 @@ push_events!(XdgOutput);
 push_events!(WlTouch);
 push_events!(ZwpConfinedPointerV1);
 push_events!(ZwpLockedPointerV1);
+push_events!(ZwpTabletToolV2);

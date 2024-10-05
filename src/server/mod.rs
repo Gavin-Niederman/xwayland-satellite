@@ -362,7 +362,8 @@ pub(crate) enum Object {
     Drm(Drm),
     Touch(Touch),
     ConfinedPointer(ConfinedPointer),
-    LockedPointer(LockedPointer)
+    LockedPointer(LockedPointer),
+    TabletTool(TabletTool)
 }
 
 }
